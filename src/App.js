@@ -187,12 +187,12 @@ function AnimatedWords({ text, active }) {
 // Put your photos in  public/photos/1.jpg etc.
 // ─────────────────────────────────────────────
 const MEMORIES = [
-  { img: "/photos/1.jpg", label: "Our first day 🌸" },
-  { img: "/photos/2.jpg", label: "Dancing in the rain 💜" },
-  { img: "/photos/3.jpg", label: "Best memories ✨" },
-  { img: "/photos/4.jpg", label: "Every moment 🦋" },
-  { img: "/photos/5.jpg", label: "A scent we'll never forget 🌟" },
-  { img: "/photos/6.jpg", label: "Always together 💕" },
+  { img: "public/photos/1.jpg", label: "Our first day 🌸" },
+  { img: "public/photos/2.jpg", label: "Dancing in the rain 💜" },
+  { img: "public/photos/3.jpg", label: "Best memories ✨" },
+  { img: "public/photos/4.jpg", label: "Every moment 🦋" },
+  { img: "public/photos/5.jpg", label: "A scent we'll never forget 🌟" },
+  { img: "public/photos/6.jpg", label: "Always together 💕" },
 ];
 
 // ─────────────────────────────────────────────
