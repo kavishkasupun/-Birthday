@@ -4,10 +4,85 @@ import "./App.css";
 const TOTAL_STARS = 80;
 const TOTAL_PETALS = 18;
 
+// ─── Colombo timezone birthday target ───────────────────────────
+const BIRTHDAY_UTC = new Date("2026-04-17T00:00:00+05:30");
+
 function randomBetween(a, b) {
   return a + Math.random() * (b - a);
 }
 
+// ─────────────────────────────────────────────
+// 3D Love Loading Screen
+// ─────────────────────────────────────────────
+function LoveLoader({ onDone }) {
+  const [progress, setProgress] = useState(0);
+  const [phase, setPhase] = useState(0); // 0=loading, 1=fadeout
+  const texts = [
+    "Gathering your memories…",
+    "Wrapping love with care…",
+    "Almost there, sweetheart…",
+    "Ready to celebrate! 🎂",
+  ];
+
+  useEffect(() => {
+    let val = 0;
+    const inc = setInterval(() => {
+      val += randomBetween(0.8, 2.2);
+      if (val >= 100) {
+        val = 100;
+        clearInterval(inc);
+        setTimeout(() => {
+          setPhase(1);
+          setTimeout(onDone, 900);
+        }, 600);
+      }
+      setProgress(Math.min(val, 100));
+    }, 40);
+    return () => clearInterval(inc);
+  }, [onDone]);
+
+  const textIdx = Math.min(Math.floor(progress / 26), 3);
+
+  return (
+    <div className={`love-loader ${phase === 1 ? "loader-fadeout" : ""}`}>
+      {Array.from({ length: 18 }, (_, i) => (
+        <span
+          key={i}
+          className="loader-heart"
+          style={{
+            left: `${randomBetween(2, 96)}%`,
+            animationDuration: `${randomBetween(4, 9)}s`,
+            animationDelay: `${randomBetween(0, 5)}s`,
+            fontSize: `${randomBetween(0.8, 2.2)}rem`,
+            opacity: randomBetween(0.15, 0.55),
+          }}
+        >
+          {["💜", "🌸", "💗", "✨", "💕", "🦋"][i % 6]}
+        </span>
+      ))}
+
+      <div className="loader-scene">
+        <div className="loader-heart3d">
+          <div className="heart-ring ring1" />
+          <div className="heart-ring ring2" />
+          <div className="heart-ring ring3" />
+          <div className="heart-core">💜</div>
+        </div>
+      </div>
+
+      <p className="loader-text">{texts[textIdx]}</p>
+
+      <div className="loader-bar-wrap">
+        <div className="loader-bar" style={{ width: `${progress}%` }} />
+        <span className="loader-pct">{Math.round(progress)}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Stars & Petals
+// ─────────────────────────────────────────────
 function Stars() {
   const stars = Array.from({ length: TOTAL_STARS }, (_, i) => ({
     id: i,
@@ -66,6 +141,9 @@ function FloatingPetals() {
   );
 }
 
+// ─────────────────────────────────────────────
+// Fireworks
+// ─────────────────────────────────────────────
 function Fireworks({ active }) {
   const canvasRef = useRef(null);
   const particles = useRef([]);
@@ -74,9 +152,14 @@ function Fireworks({ active }) {
   useEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
 
     function burst() {
       const x = randomBetween(canvas.width * 0.2, canvas.width * 0.8);
@@ -123,6 +206,7 @@ function Fireworks({ active }) {
     animate();
 
     return () => {
+      window.removeEventListener("resize", resize);
       clearInterval(burstInterval);
       cancelAnimationFrame(animRef.current);
       particles.current = [];
@@ -183,39 +267,29 @@ function AnimatedWords({ text, active }) {
 }
 
 // ─────────────────────────────────────────────
-// MEMORIES — update img paths & labels here
-// Put your photos in  public/photos/1.jpg etc.
+// MEMORIES
 // ─────────────────────────────────────────────
 const MEMORIES = [
-  { img: process.env.PUBLIC_URL + "/photos/1.jpg", label: "Our first day 🌸" },
-  { img: process.env.PUBLIC_URL + "/photos/2.jpg", label: "Dancing in the rain 💜" },
-  { img: process.env.PUBLIC_URL + "/photos/3.jpg", label: "Best memories ✨" },
-  { img: process.env.PUBLIC_URL + "/photos/4.jpg", label: "Every moment 🦋" },
-  { img: process.env.PUBLIC_URL + "/photos/5.jpg", label: "A scent we'll never forget 🌟" },
-  { img: process.env.PUBLIC_URL + "/photos/6.jpg", label: "Always together 💕" },
+  { img: process.env.PUBLIC_URL + "/photos/1.jpg", label: "Our first day 🌸", memory: "Remember how everything felt new, magical, and perfect?" },
+  { img: process.env.PUBLIC_URL + "/photos/2.jpg", label: "Dancing in the rain 💜", memory: "We laughed so hard that day… I'd replay that moment forever." },
+  { img: process.env.PUBLIC_URL + "/photos/3.jpg", label: "Best memories ✨", memory: "Every picture holds a thousand feelings only we understand." },
+  { img: process.env.PUBLIC_URL + "/photos/4.jpg", label: "Every moment 🦋", memory: "Time stops when I'm with you — always has, always will." },
+  { img: process.env.PUBLIC_URL + "/photos/5.jpg", label: "A scent we'll never forget 🌟", memory: "Some moments aren't captured on camera — they live in the heart." },
+  { img: process.env.PUBLIC_URL + "/photos/6.jpg", label: "Always together 💕", memory: "No matter where life takes us, you'll always be my favourite chapter." },
 ];
 
-// ─────────────────────────────────────────────
-// Full-screen Photo Modal
-// ─────────────────────────────────────────────
 function PhotoModal({ memories, startIndex, onClose }) {
   const [current, setCurrent] = useState(startIndex);
   const [phase, setPhase] = useState("in");
   const total = memories.length;
 
-  const handleBackdrop = (e) => {
-    if (e.target.classList.contains("modal-backdrop")) onClose();
-  };
-
-  const navigate = useCallback(
-    (dir) => {
-      setPhase("out");
-      setTimeout(() => {
-        setCurrent((c) => (c + dir + total) % total);
-        setPhase("in");
-      }, 420);
-    },
-    [total]
+  const navigate = useCallback((dir) => {
+    setPhase("out");
+    setTimeout(() => {
+      setCurrent((c) => (c + dir + total) % total);
+      setPhase("in");
+    }, 420);
+  }, [total]
   );
 
   useEffect(() => {
@@ -225,43 +299,36 @@ function PhotoModal({ memories, startIndex, onClose }) {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    }
   }, [navigate, onClose]);
 
-  // Prevent body scroll while modal open
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
+  const handleBackdrop = (e) => {
+    if (e.target.classList.contains("modal-backdrop")) onClose();
+  };
 
   return (
     <div className="modal-backdrop" onClick={handleBackdrop}>
       <div className="modal-box">
         <button className="modal-close" onClick={onClose}>✕</button>
-
         <div className={`modal-img-wrap phase-${phase}`}>
-          <img
-            src={memories[current].img}
-            alt={memories[current].label}
-            className="modal-img"
-          />
+          <img src={memories[current].img} alt={memories[current].label} className="modal-img" />
+          <div className="modal-film-grain" />
         </div>
-
         <p className={`modal-label phase-${phase}`}>{memories[current].label}</p>
+        <p className={`modal-memory-text phase-${phase}`}>{memories[current].memory}</p>
         <p className="modal-counter">{current + 1} / {total}</p>
-
         <button className="modal-arrow modal-arrow-left" onClick={() => navigate(-1)}>‹</button>
         <button className="modal-arrow modal-arrow-right" onClick={() => navigate(1)}>›</button>
-
         <div className="modal-dots">
           {memories.map((_, i) => (
             <span
               key={i}
               className={`modal-dot ${i === current ? "modal-dot-active" : ""}`}
-              onClick={() => {
-                setPhase("out");
-                setTimeout(() => { setCurrent(i); setPhase("in"); }, 420);
-              }}
+              onClick={() => { setPhase("out"); setTimeout(() => { setCurrent(i); setPhase("in"); }, 420); }}
             />
           ))}
         </div>
@@ -270,137 +337,85 @@ function PhotoModal({ memories, startIndex, onClose }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Memory Carousel — large featured + thumbnails
-// Auto-slides with zoom+fade transition
-// ─────────────────────────────────────────────
 function MemoryCards({ active }) {
   const [current, setCurrent] = useState(0);
   const [phase, setPhase] = useState("in");
   const [modalIndex, setModalIndex] = useState(null);
+  const [showMemText, setShowMemText] = useState(false);
   const total = MEMORIES.length;
   const autoRef = useRef(null);
 
-  const goTo = useCallback(
-    (next) => {
-      const target = ((next % total) + total) % total;
-      setPhase("out");
-      setTimeout(() => {
-        setCurrent(target);
-        setPhase("in");
-      }, 500);
-    },
-    [total]
+  const goTo = useCallback((next) => {
+    const target = ((next % total) + total) % total;
+    setPhase("out");
+    setShowMemText(false);
+    setTimeout(() => {
+      setCurrent(target);
+      setPhase("in");
+      setTimeout(() => setShowMemText(true), 400);
+    }, 500);
+  }, [total]
   );
 
-  // Auto-advance every 4 seconds
+  useEffect(() => {
+    if (active) setTimeout(() => setShowMemText(true), 800);
+  }, [active]);
+
   useEffect(() => {
     if (!active) return;
     autoRef.current = setInterval(() => {
       setCurrent((c) => {
         const next = (c + 1) % total;
         setPhase("out");
-        setTimeout(() => {
-          setCurrent(next);
-          setPhase("in");
-        }, 500);
-        return c; // don't change yet — wait for timeout
+        setShowMemText(false);
+        setTimeout(() => { setCurrent(next); setPhase("in"); setTimeout(() => setShowMemText(true), 400); }, 500);
+        return c;
       });
-    }, 4000);
+    }, 5000);
     return () => clearInterval(autoRef.current);
   }, [active, total]);
-
-  const handleNav = (dir) => {
-    clearInterval(autoRef.current);
-    goTo(current + dir);
-  };
 
   if (!active) return null;
 
   return (
     <>
       {modalIndex !== null && (
-        <PhotoModal
-          memories={MEMORIES}
-          startIndex={modalIndex}
-          onClose={() => setModalIndex(null)}
-        />
+        <PhotoModal memories={MEMORIES} startIndex={modalIndex} onClose={() => setModalIndex(null)} />
       )}
-
       <div className="memory-section">
-        <p className="memory-title">💜 Our Moments 💜</p>
-
-        {/* Large featured photo */}
-        <div className="featured-wrap">
-          <div
-            className={`featured-img-box phase-${phase}`}
-            onClick={() => setModalIndex(current)}
-            title="Click to view full screen"
-          >
-            <img
-              src={MEMORIES[current].img}
-              alt={MEMORIES[current].label}
-              className="featured-img"
-            />
-            <div className="featured-overlay">
-              <span className="featured-zoom-icon">🔍 View</span>
-            </div>
-          </div>
-
-          <p className={`featured-label phase-${phase}`}>
-            {MEMORIES[current].label}
-          </p>
-
-          {/* Navigation arrows */}
-          <button className="feat-arrow feat-arrow-left" onClick={() => handleNav(-1)}>‹</button>
-          <button className="feat-arrow feat-arrow-right" onClick={() => handleNav(1)}>›</button>
+        <div className="memory-title-wrap">
+          <p className="memory-title">💜 Our Moments 💜</p>
+          <p className="memory-subtitle">Every photo tells a story only we know…</p>
         </div>
-
-        {/* Thumbnail strip */}
+        <div className="featured-wrap">
+          <div className={`featured-img-box phase-${phase}`} onClick={() => setModalIndex(current)}>
+            <img src={MEMORIES[current].img} alt={MEMORIES[current].label} className="featured-img" />
+            <div className="film-grain" />
+            <div className="vignette" />
+            <div className="featured-overlay"><span className="featured-zoom-icon">🔍 View Memory</span></div>
+          </div>
+          <p className={`featured-label phase-${phase}`}>{MEMORIES[current].label}</p>
+          <div className={`memory-quote ${showMemText ? "mem-text-in" : "mem-text-out"}`}>
+            <span className="quote-mark">"</span>{MEMORIES[current].memory}<span className="quote-mark">"</span>
+          </div>
+          <button className="feat-arrow feat-arrow-left" onClick={() => { clearInterval(autoRef.current); goTo(current - 1); }}>‹</button>
+          <button className="feat-arrow feat-arrow-right" onClick={() => { clearInterval(autoRef.current); goTo(current + 1); }}>›</button>
+        </div>
         <div className="thumb-strip">
           {MEMORIES.map((m, i) => (
-            <div
-              key={i}
-              className={`thumb-item ${i === current ? "thumb-active" : ""}`}
-              onClick={() => {
-                clearInterval(autoRef.current);
-                goTo(i);
-              }}
-            >
+            <div key={i} className={`thumb-item ${i === current ? "thumb-active" : ""}`} onClick={() => { clearInterval(autoRef.current); goTo(i); }}>
               <img src={m.img} alt={m.label} className="thumb-img" />
             </div>
           ))}
         </div>
-
-        {/* Dots */}
         <div className="memory-dots">
           {MEMORIES.map((_, i) => (
-            <span
-              key={i}
-              className={`dot ${i === current ? "dot-active" : ""}`}
-              onClick={() => { clearInterval(autoRef.current); goTo(i); }}
-            />
+            <span key={i} className={`dot ${i === current ? "dot-active" : ""}`} onClick={() => { clearInterval(autoRef.current); goTo(i); }} />
           ))}
         </div>
       </div>
     </>
   );
-}
-
-// ─────────────────────────────────────────────
-// Birthday Countdown
-// ─────────────────────────────────────────────
-function BirthdayCountdown() {
-  const birthday = new Date("2026-04-17");
-  const today = new Date();
-  const isToday =
-    today.getDate() === birthday.getDate() &&
-    today.getMonth() === birthday.getMonth() &&
-    today.getFullYear() === birthday.getFullYear();
-  const diff = Math.ceil((birthday - today) / (1000 * 60 * 60 * 24));
-  if (isToday) return <div className="countdown-badge today-badge">🎉 Today is the day! 🎉</div>;
-  if (diff > 0) return <div className="countdown-badge">🗓️ <strong>{diff}</strong> days until the big day!</div>;
-  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -420,6 +435,10 @@ const MESSAGES = [
 // Main App
 // ─────────────────────────────────────────────
 export default function App() {
+  // appPhase: 'loading' -> 'countdown_lock' -> 'unlocked' -> 'celebration'
+  const [appPhase, setAppPhase] = useState("loading");
+
+  const [timeLeft, setTimeLeft] = useState(null);
   const [revealed, setRevealed] = useState(false);
   const [msgIndex, setMsgIndex] = useState(0);
   const [fireworks, setFireworks] = useState(false);
@@ -427,11 +446,57 @@ export default function App() {
   const [showPostBlow, setShowPostBlow] = useState(false);
   const [wordPhase, setWordPhase] = useState(0);
 
+  const audioRef = useRef(null);
+
   const wishPhrases = [
-    "Happy Birthday Supuni! 🎂",
+    "Happy Birthday Love! 🎂",
     "You are so loved 💜",
     "Make a wish, beautiful! ✨",
   ];
+
+  function handleLoaderDone() {
+    if (Date.now() >= BIRTHDAY_UTC.getTime()) {
+      setAppPhase("unlocked");
+    } else {
+      setAppPhase("countdown_lock");
+    }
+  }
+
+  // Real-time tick logic for countdown popup
+  useEffect(() => {
+    if (appPhase !== "countdown_lock" && appPhase !== "unlocked") return;
+
+    function calc() {
+      const diff = BIRTHDAY_UTC.getTime() - Date.now();
+      if (diff <= 0) {
+        if (appPhase === "countdown_lock") {
+          setAppPhase("unlocked");
+          setFireworks(true); // small fireworks burst when unlocking
+          setTimeout(() => setFireworks(false), 3000);
+        }
+      } else {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft({ days, hours, minutes, seconds });
+      }
+    }
+    calc(); // initial
+    const interval = setInterval(calc, 1000);
+    return () => clearInterval(interval);
+  }, [appPhase]);
+
+  // Handle entering the celebration -> transition & play music
+  function startCelebration() {
+    setAppPhase("celebration");
+    setFireworks(true);
+    setTimeout(() => setFireworks(false), 2500);
+
+    if (audioRef.current) {
+      audioRef.current.play().catch(e => console.log("Audio play failed: ", e));
+    }
+  }
 
   function handleCandles() {
     setCandlesBlown(true);
@@ -452,10 +517,6 @@ export default function App() {
     setTimeout(() => setFireworks(false), 5500);
   }
 
-  function nextMsg() {
-    setMsgIndex((i) => (i + 1) % MESSAGES.length);
-  }
-
   return (
     <div className="app">
       <Stars />
@@ -463,13 +524,68 @@ export default function App() {
       <Fireworks active={fireworks} />
       <FloatingHearts active={showPostBlow} />
 
-      <div className="content">
+      {/* Background Audio */}
+      <audio
+        ref={audioRef}
+        src={process.env.PUBLIC_URL + "/music/bg-music.mp3"}
+        loop
+      />
+
+      {appPhase === "loading" && <LoveLoader onDone={handleLoaderDone} />}
+
+      {/* Full Screen Glass Popup for Countdown/Intro */}
+      {(appPhase === "countdown_lock" || appPhase === "unlocked") && (
+        <div className="glass-popup-overlay">
+          <div className={`glass-popup ${appPhase === 'unlocked' ? 'pulse-border' : ''}`}>
+            {appPhase === "countdown_lock" && timeLeft ? (
+              <>
+                <h2 className="popup-title">Hold on, Sweety 🦋</h2>
+                <p className="popup-subtitle">Your special day is almost here...</p>
+
+                <div className="countdown-wrap">
+                  <div className="countdown-units">
+                    <div className="cd-unit">
+                      <span className="cd-num">{timeLeft.days}</span>
+                      <span className="cd-lbl">Days</span>
+                    </div>
+                    <span className="cd-sep">:</span>
+                    <div className="cd-unit">
+                      <span className="cd-num">{String(timeLeft.hours).padStart(2, "0")}</span>
+                      <span className="cd-lbl">Hours</span>
+                    </div>
+                    <span className="cd-sep">:</span>
+                    <div className="cd-unit">
+                      <span className="cd-num">{String(timeLeft.minutes).padStart(2, "0")}</span>
+                      <span className="cd-lbl">Mins</span>
+                    </div>
+                    <span className="cd-sep">:</span>
+                    <div className="cd-unit">
+                      <span className="cd-num">{String(timeLeft.seconds).padStart(2, "0")}</span>
+                      <span className="cd-lbl">Secs</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="popup-unlocked-state">
+                <h2 className="popup-title glow-title">🎉 Happy Birthday! 🎉</h2>
+                <p className="popup-subtitle">The wait is over, the magic begins now.</p>
+                <button className="enter-btn pop-in" onClick={startCelebration}>
+                  Step into the Magic ✨
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content — rendered but slightly blurred/faded if not celebration */}
+      <div className={`content ${appPhase !== "celebration" ? "content-hidden" : ""}`}>
         {/* Header */}
         <div className="header-glow">
-          <BirthdayCountdown />
           <p className="subtitle-top">✨ A special day for a special girl ✨</p>
           <h1 className="main-title">Happy Birthday</h1>
-          <h2 className="name-title">Supuni Udeshika</h2>
+          <h2 className="name-title">Sweety Manikh</h2>
           <p className="date-badge">17 · April · 2026</p>
         </div>
 
@@ -494,9 +610,14 @@ export default function App() {
           </div>
 
           {!candlesBlown ? (
-            <button className="blow-btn" onClick={handleCandles}>
-              🎂 Blow the Candles!
-            </button>
+            <div className="blow-btn-wrap">
+              <button
+                className="blow-btn"
+                onClick={handleCandles}
+              >
+                🎂 Blow the Candles!
+              </button>
+            </div>
           ) : (
             <div className="post-blow-area">
               {wishPhrases.map((phrase, i) => (
@@ -506,35 +627,35 @@ export default function App() {
           )}
         </div>
 
-        {/* Memory Carousel — appears after candles blown */}
         <MemoryCards active={showPostBlow} />
 
-        {/* Reveal */}
-        {!revealed ? (
-          <div className="reveal-section">
-            <p className="reveal-hint">There's a special message waiting for you 💌</p>
-            <button className="reveal-btn" onClick={handleReveal}>Open Your Gift 🎁</button>
-          </div>
-        ) : (
-          <div className="message-box">
-            <div className="msg-inner">
-              <p className="msg-label">💜 From the heart 💜</p>
-              <p className="msg-text">{MESSAGES[msgIndex]}</p>
-              <div className="msg-progress">
-                {MESSAGES.map((_, i) => (
-                  <span key={i} className={`msg-dot ${i === msgIndex ? "msg-dot-active" : ""}`} />
-                ))}
-              </div>
-              <button className="next-msg-btn" onClick={nextMsg}>Next Message 💫</button>
+        {showPostBlow && (
+          !revealed ? (
+            <div className="reveal-section">
+              <p className="reveal-hint">There's a special message waiting for you 💌</p>
+              <button className="reveal-btn" onClick={handleReveal}>Open Your Gift 🎁</button>
             </div>
-          </div>
+          ) : (
+            <div className="message-box">
+              <div className="msg-inner">
+                <p className="msg-label">💜 From the heart 💜</p>
+                <p className="msg-text">{MESSAGES[msgIndex]}</p>
+                <div className="msg-progress">
+                  {MESSAGES.map((_, i) => (
+                    <span key={i} className={`msg-dot ${i === msgIndex ? "msg-dot-active" : ""}`} />
+                  ))}
+                </div>
+                <button className="next-msg-btn" onClick={() => setMsgIndex((i) => (i + 1) % MESSAGES.length)}>Next Message 💫</button>
+              </div>
+            </div>
+          )
         )}
 
         {/* Wish Card */}
         <div className="wish-card">
           <h3>On your special day...</h3>
           <p>
-            Supuni, the day you were born was the greatest gift the world ever received.
+            Sweety, the day you were born was the greatest gift the world ever received.
             Your smile, your love — every little thing about you is beautiful.
             May this year bring you all the happiness you truly deserve. 🌸
           </p>
@@ -547,7 +668,7 @@ export default function App() {
 
         {/* Footer */}
         <div className="footer">
-          <p>Made with 💜 just for you, Supuni</p>
+          <p>Made with 💜 just for you, Manikh</p>
         </div>
       </div>
     </div>
